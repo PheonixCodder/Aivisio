@@ -5,6 +5,20 @@ const nextConfig: NextConfig = {
     fetches: {
       fullUrl: true,
     }
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "replicate.delivery",
+      },
+      {
+        protocol: "https",
+        hostname: "sanqiqdndvvdsuoqpapn.supabase.co",
+        pathname: "/storage/v1/object/**",
+      },
+
+    ]
   }
 };
 

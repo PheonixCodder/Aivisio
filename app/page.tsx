@@ -1,9 +1,21 @@
-import { Button } from "../components/ui/button";
+import Pricing, { ProductWithPrices } from "@/components/home/Pricing/Pricing";
+import { getProducts, getUser } from "@/lib/supabase/queries";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+
+  const [user, products] = await Promise.all([
+    getUser(supabase),
+    getProducts(supabase),
+  ])
+
+  if (user) redirect('/dashboard');
+
   return (
-    <div>
-      <Button />
-    </div>
+    <main className="flex flex-col min-h-screen items-center justify-center">
+      <Pricing products={products as ProductWithPrices[]} />
+    </main>
   );
 }

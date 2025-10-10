@@ -20,7 +20,8 @@
       }
     ],
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["*"],
+      "@database.types": ["./database.types.ts"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
