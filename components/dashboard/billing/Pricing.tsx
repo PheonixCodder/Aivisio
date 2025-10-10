@@ -48,7 +48,9 @@ const Pricing = ({ products, MostPopular = "pro", subscription, user }: PricingP
     "month"
   );
 
-  const handleStripeCheckout= async (price: Price) => {}
+  const handleStripeCheckout= async (price: Price) => {
+    
+  }
 
   const handleStripePortalRequest= async (product: ProductWithPrices) => {}
 
