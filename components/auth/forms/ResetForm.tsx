@@ -1,5 +1,5 @@
 "use client";
-import React from 'react'
+import React, { useId } from 'react'
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ResetFormSchema } from "@/lib/validations";
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { cn } from '@/lib/utils';
+import { resetPassword } from '@/actions/auth.actions';
+import { toast } from 'sonner';
 
 
 const SignupForm = ({ className, onClick } : { className?: string; onClick: (mode : AuthFormType) => void}) => {
@@ -27,9 +29,22 @@ const SignupForm = ({ className, onClick } : { className?: string; onClick: (mod
     },
   })
 
-  const onSubmit = (values: z.infer<typeof ResetFormSchema>) => {
-    
-  }
+ const toastId = useId();
+
+  const onSubmit = async (values: z.infer<typeof ResetFormSchema>) => {
+        toast.loading("Sending reset password email...", {id: toastId});
+        try {
+            const { success, error } = await resetPassword({email: values.email});
+            if (success) {
+                toast.success("Reset password email sent successfully", {id: toastId});
+            } else {
+                toast.error(error, {id: toastId});
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "Error sending reset password email";
+            toast.error(errorMessage, {id: toastId});
+};
+};
 
   return (
     <>
