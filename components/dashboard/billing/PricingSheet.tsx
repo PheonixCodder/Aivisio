@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import Pricing from '@/components/dashboard/billing/Pricing'
 
-const PricingSheet = ({ user, products, subscription }: PlanSummaryProps) => {
+const PricingSheet = ({ user, products, subscription }: Partial<PlanSummaryProps>) => {
   return (
     <Sheet>
   <SheetTrigger asChild>
@@ -24,7 +24,7 @@ const PricingSheet = ({ user, products, subscription }: PlanSummaryProps) => {
         Choose the plan that fits your needs and budget to continue using our services
       </SheetDescription>
     </SheetHeader>
-    <Pricing user={user} subscription={subscription} MostPopular='pro' products={products} />
+    <Pricing user={user!} subscription={subscription!} MostPopular='pro' products={products!} />
   </SheetContent>
 </Sheet>
   )
