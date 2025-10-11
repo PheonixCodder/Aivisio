@@ -11,6 +11,21 @@ export const LoginFormSchema = z.object({
     }),
 });
 
+export const ResetPasswordFormSchema = z.object({
+    password : z.string({
+        error: "Password is required"
+    }).min(8, {
+        error : "Password must be at least 8 characters long"
+    }).regex(PasswordValidationRegex, {
+        error : "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+    }),
+    confirmPassword : z.string().min(8, {
+        error : "Password must be at least 8 characters long"
+    }).regex(PasswordValidationRegex, {
+        error : "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character"
+    }),
+});
+
 export const SignupFormSchema = z.object({
     name : z.string().min(3, {
         error : "Name must be at least 3 characters long"
@@ -100,4 +115,11 @@ export const ModelTrainingFormSchema = z.object({
       (file) => file.size <= MAX_FILE_SIZE,
       "File size must be less than 45MB"
     ),
+});
+
+export const AccountFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required"),
+  email: z.email("Please enter a valid email address")
 });
