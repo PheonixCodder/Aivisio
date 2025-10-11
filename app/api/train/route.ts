@@ -1,3 +1,4 @@
+import { Tables } from "@/database.types";
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
@@ -7,8 +8,27 @@ const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
 });
 
-const WEBHOOK_URL =
-  process.env.SITE_URL || "https://6c5d302225fc.ngrok-free.app";
+const WEBHOOK_URL = process.env.SITE_URL || "https://6c5d302225fc.ngrok-free.app";
+
+async function validateUserCredits(userId: string){
+  const { data: credits, error } = await supabaseAdmin
+    .from("credits")
+    .select("*")
+    .eq("user_id", userId)
+    .single();
+
+  if (error) {
+    throw new Error("Error fetching user credits");
+  }
+    const newCredits = credits.model_training_count ?? 0
+
+    if (newCredits <= 0) {
+      throw new Error("No credits left");
+    }
+
+    return newCredits
+
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +66,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const oldCredits = await validateUserCredits(user.id);
 
     const fileName = input.fileKey.replace("training_data/", "");
 
@@ -107,15 +129,24 @@ export async function POST(request: NextRequest) {
     //Add model values in the database
 
     await supabaseAdmin.from("models").insert({
-      user_id: user.id,
       model_id: modelId,
       model_name: input.modelName,
+      user_id: user.id,
       gender: input.gender,
       training_status: training.status,
       trigger_word: "ohai",
       training_steps: 1200,
       training_id: training.id,
-    })
+    } as Tables<"models">);
+
+    await supabaseAdmin
+      .from("credits")
+      .update({ model_training_count: oldCredits - 1 })
+      .eq("user_id", user.id);
+
+    return NextResponse.json({
+    success: true
+    }, { status: 200 });
   } catch (error) {
     console.error("Training failed:", error);
     const errorMessage =

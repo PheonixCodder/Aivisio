@@ -105,6 +105,25 @@ export async function POST(req: NextRequest) {
         .update({ training_status: body.status })
         .eq("user_id", userId)
         .eq("model_id", modelName);
+
+        const { data: oldCredits, error } = await supabaseAdmin
+    .from("credits")
+    .select("model_training_count")
+    .eq("user_id", userId)
+    .single();
+
+  if (error) {
+    throw new Error("Error fetching user credits");
+  }
+  await supabaseAdmin
+    .from("credits")
+    .update({
+      model_training_count: oldCredits.model_training_count! + 1,
+    })
+    .eq("user_id", userId)
+    .single();
+
+
     }
     //Delete the training data from the supabase storage
     await supabaseAdmin.storage.from("training_data").remove([`${fileName}`]);
