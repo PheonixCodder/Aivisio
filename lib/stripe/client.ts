@@ -1,14 +1,20 @@
-import { loadStripe, Stripe } from '@stripe/stripe-js';
+import { loadStripe, Stripe } from "@stripe/stripe-js";
 
-let stripePromise: Promise<Stripe | null>;
+let stripePromise: Promise<Stripe | null> | null = null;
 
-export const getStripe = () => {
+export const getStripe = async () => {
+  if (process.env.NEXT_PUBLIC_ENABLE_STRIPE === "false") {
+    console.warn("⚠️ Stripe disabled in this environment");
+    return null;
+  }
+
   if (!stripePromise) {
-    stripePromise = loadStripe(
+    const key =
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY_LIVE ??
-        process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ??
-        ''
-    );
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ??
+      "";
+
+    stripePromise = loadStripe(key);
   }
 
   return stripePromise;

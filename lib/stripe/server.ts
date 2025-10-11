@@ -1,181 +1,71 @@
-'use server';
+"use server";
 
-import Stripe from 'stripe';
-import { stripe } from '@/lib/stripe/config';
-import { createClient } from '@/lib/supabase/server';
-import { createOrRetrieveCustomer } from '@/lib/supabase/admin';
-import {
-  getURL,
-  getErrorRedirect,
-  calculateTrialEndUnixTimestamp
-} from '@/lib/helpers';
-import { Tables } from '@/database.types';
+import { stripe } from "@/lib/stripe/config";
+import { createClient } from "@/lib/supabase/server";
+import { createOrRetrieveCustomer } from "@/lib/supabase/admin";
+import { getURL, getErrorRedirect, calculateTrialEndUnixTimestamp } from "@/lib/helpers";
+import { Tables } from "@/database.types";
 
-type Price = Tables<'prices'>;
+type Price = Tables<"prices">;
 
 type CheckoutResponse = {
   errorRedirect?: string;
   sessionId?: string;
 };
 
-export async function checkoutWithStripe(
-  price: Price,
-  redirectPath: string = '/account'
-): Promise<CheckoutResponse> {
+export async function checkoutWithStripe(price: Price, redirectPath = "/dashboard"): Promise<CheckoutResponse> {
+  if (process.env.NEXT_PUBLIC_ENABLE_STRIPE === "false") {
+    console.warn("⚠️ Stripe checkout disabled");
+    return { errorRedirect: getErrorRedirect(redirectPath, "Stripe disabled in this environment.", "Please enable Stripe to process payments.") };
+  }
+
   try {
-    // Get the user from Supabase auth
     const supabase = await createClient();
-    const {
-      error,
-      data: { user }
-    } = await supabase.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) throw new Error("No user session found.");
 
-    if (error || !user) {
-      console.error(error);
-      throw new Error('Could not get user session.');
-    }
+    const customer = await createOrRetrieveCustomer({ uuid: user.id, email: user.email ?? "" });
 
-    // Retrieve or create the customer in Stripe
-    let customer: string;
-    try {
-      customer = await createOrRetrieveCustomer({
-        uuid: user?.id || '',
-        email: user?.email || ''
-      });
-    } catch (err) {
-      console.error(err);
-      throw new Error('Unable to access customer record.');
-    }
-
-    let params: Stripe.Checkout.SessionCreateParams = {
+    const params: any = {
       allow_promotion_codes: true,
-      billing_address_collection: 'required',
+      billing_address_collection: "required",
       customer,
-      customer_update: {
-        address: 'auto'
-      },
-      line_items: [
-        {
-          price: price.id,
-          quantity: 1
-        }
-      ],
+      client_reference_id: user.id,
+      metadata: price.metadata ?? {},
+      customer_update: { address: "auto" },
+      line_items: [{ price: price.id, quantity: 1 }],
       cancel_url: getURL(),
-      success_url: getURL(redirectPath)
+      success_url: getURL(redirectPath),
+      mode: price.type === "recurring" ? "subscription" : "payment",
     };
 
-    console.log(
-      'Trial end:',
-      calculateTrialEndUnixTimestamp(price.trial_period_days)
-    );
-    if (price.type === 'recurring') {
-      params = {
-        ...params,
-        mode: 'subscription',
-        subscription_data: {
-          trial_end: calculateTrialEndUnixTimestamp(price.trial_period_days)
-        }
-      };
-    } else if (price.type === 'one_time') {
-      params = {
-        ...params,
-        mode: 'payment'
-      };
-    }
+    if (price.trial_period_days)
+      params.subscription_data = { trial_end: calculateTrialEndUnixTimestamp(price.trial_period_days) };
 
-    // Create a checkout session in Stripe
-    let session;
-    try {
-      session = await stripe.checkout.sessions.create(params);
-    } catch (err) {
-      console.error(err);
-      throw new Error('Unable to create checkout session.');
-    }
-
-    // Instead of returning a Response, just return the data or error.
-    if (session) {
-      return { sessionId: session.id };
-    } else {
-      throw new Error('Unable to create checkout session.');
-    }
+    const session = await stripe.checkout.sessions.create(params);
+    return { sessionId: session.id };
   } catch (error) {
-    if (error instanceof Error) {
-      return {
-        errorRedirect: getErrorRedirect(
-          redirectPath,
-          error.message,
-          'Please try again later or contact a system administrator.'
-        )
-      };
-    } else {
-      return {
-        errorRedirect: getErrorRedirect(
-          redirectPath,
-          'An unknown error occurred.',
-          'Please try again later or contact a system administrator.'
-        )
-      };
-    }
+    console.error(error);
+    return { errorRedirect: getErrorRedirect(redirectPath, "Checkout failed", "Please try again later.") };
   }
 }
 
 export async function createStripePortal(currentPath: string) {
+  if (process.env.NEXT_PUBLIC_ENABLE_STRIPE === "false") {
+    console.warn("⚠️ Stripe portal disabled");
+    return getErrorRedirect(currentPath, "Stripe disabled in this environment.", "Enable Stripe in production.");
+  }
+
   try {
     const supabase = await createClient();
-    const {
-      error,
-      data: { user }
-    } = await supabase.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error || !user) throw new Error("No user session found.");
 
-    if (!user) {
-      if (error) {
-        console.error(error);
-      }
-      throw new Error('Could not get user session.');
-    }
-
-    let customer;
-    try {
-      customer = await createOrRetrieveCustomer({
-        uuid: user.id || '',
-        email: user.email || ''
-      });
-    } catch (err) {
-      console.error(err);
-      throw new Error('Unable to access customer record.');
-    }
-
-    if (!customer) {
-      throw new Error('Could not get customer.');
-    }
-
-    try {
-      const { url } = await stripe.billingPortal.sessions.create({
-        customer,
-        return_url: getURL('/account')
-      });
-      if (!url) {
-        throw new Error('Could not create billing portal');
-      }
-      return url;
-    } catch (err) {
-      console.error(err);
-      throw new Error('Could not create billing portal');
-    }
+    const customer = await createOrRetrieveCustomer({ uuid: user.id, email: user.email ?? "" });
+    const { url } = await stripe.billingPortal.sessions.create({ customer, return_url: getURL("/account") });
+    return url;
   } catch (error) {
-    if (error instanceof Error) {
-      console.error(error);
-      return getErrorRedirect(
-        currentPath,
-        error.message,
-        'Please try again later or contact a system administrator.'
-      );
-    } else {
-      return getErrorRedirect(
-        currentPath,
-        'An unknown error occurred.',
-        'Please try again later or contact a system administrator.'
-      );
-    }
+    console.error(error);
+    return getErrorRedirect(currentPath, "Portal creation failed", "Please try again later.");
   }
 }
