@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { imageMeta } from 'image-meta';
 import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
+import { getCredits } from "./credit.actions";
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -27,6 +28,15 @@ export async function generateImageAction(
     success: false,
     data: null
   };
+
+  const { data: credits } = await getCredits()
+  if (!credits?.image_generation_count || credits.image_generation_count <= 0){
+    return {
+      error: "No credits left",
+      success: false,
+      data: null
+    }
+  }
 
   const {
     prompt,
