@@ -42,3 +42,38 @@ export async function logOut() : Promise<void> {
     await supabase.auth.signOut()
     redirect(ROUTES.LOGIN)
 }
+
+export async function updateProfile(values: {
+    name: string,
+}) {
+    const supabase = await createClient();
+    const { data: user, error } = await supabase.auth.updateUser({
+        data: {
+            name: values.name
+        }
+    })
+
+    return { error: error?.message || "Error Logging in", success: !error, data: user || null}
+
+}
+
+export async function resetPassword(values: {
+    email: string,
+}) {
+    const supabase = await createClient();
+    const { data: user, error } = await supabase.auth.resetPasswordForEmail(values.email)
+
+    return { error: error?.message || "Error sending reset password email", success: !error, data: user || null}
+
+}
+
+export async function changePassword(newPassword: string){
+    const supabase = await createClient();
+
+    const { data: user, error } = await supabase.auth.updateUser({
+        password: newPassword
+    })
+
+    return { error: error?.message || "Error Changing Password", success: !error, data: user || null}
+
+}
