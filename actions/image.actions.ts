@@ -87,12 +87,12 @@ export async function generateImageAction(
       data: output as string[],
     };
   } catch (e) {
-    return {
-      error: (e as Error).message || "Error generating image",
-      success: true,
-      data: null,
-    };
-  }
+  return {
+    error: (e as Error).message || "Error generating image",
+    success: false,   // ❌ THIS SHOULD BE false
+    data: null,
+  };
+}
 }
 
 export async function imgUrlToBlob(url: string){
@@ -101,7 +101,7 @@ export async function imgUrlToBlob(url: string){
     return (await blob).arrayBuffer()
 }
 
-export async function storeImages(data: StoreImageInput){
+export async function storeImages(data: StoreImageInput[]){
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
