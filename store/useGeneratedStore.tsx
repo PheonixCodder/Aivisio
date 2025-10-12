@@ -13,11 +13,15 @@ const useGeneratedStore = create<GenerateState>((set) => ({
         set({loading: true, error: null});
 
         const toastId = toast.loading("Generating images...");
-
+        console.log(1)
         try {
             const { error, success, data } = await generateImageAction(input);
+            console.log(2)
+            console.log(success)
             if (!success){
                 set({loading: false, error: error});
+            toast.success(error, {id: toastId});
+
                 return
             }
             const dataWithUrl = data!.map(url => ({url: url as string, ...input}));
@@ -26,7 +30,7 @@ const useGeneratedStore = create<GenerateState>((set) => ({
 
             toast.success("Images generated successfully", {id: toastId});
             
-            await storeImages(dataWithUrl as StoreImageInput)
+            await storeImages(dataWithUrl as StoreImageInput[])
 
             toast.success("Images stored successfully", {id: toastId});
         } catch (error) {
