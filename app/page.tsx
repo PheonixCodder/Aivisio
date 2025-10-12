@@ -1,3 +1,5 @@
+import HeroSection from "@/components/home/HeroSection";
+import Navigation from "@/components/home/nav/Navigation";
 import Pricing, { ProductWithPrices } from "@/components/home/Pricing/Pricing";
 import { getProducts, getUser } from "@/lib/supabase/queries";
 import { createClient } from "@/lib/supabase/server";
@@ -15,6 +17,8 @@ export default async function Home() {
 
   return (
     <main className="flex flex-col min-h-screen items-center justify-center">
+      <Navigation />
+      <HeroSection />
       <Pricing products={products as ProductWithPrices[]} />
     </main>
   );
