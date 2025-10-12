@@ -59,7 +59,7 @@ export const models: { value: string; name: string }[] = [
     name: "Flux Dev",
   },
   {
-    value: "black-forest-labs/schnell",
+    value: "black-forest-labs/flux-schnell",
     name: "Flux Schnell",
   },
 ];
